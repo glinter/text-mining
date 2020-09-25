@@ -19,7 +19,6 @@
 #     print('Q1. Check spell about "{}": {}'.format(user_input, result1))
 
 
-
 # 2. dictionary 구조의 자료를 하나 생성하고 key와 value를 바꾸어서 딕셔너리에 저장하는 함수(flip)를 구현하라.
 # 그 함수를 불러서 실행하라. 다음과 똑같은 예를 사용하지 않아도 되지만,
 # 원래 데이터에서 value가 같은 게 있을 때의 처리를 위해 신규 dictionary는 value를 list로 저장하라.
@@ -41,61 +40,84 @@
 #     my_dict['초밥'] = '일식'
 #     my_dict['짜장면'] = '중식'
 #     result2 = flip(my_dict)
-#     print('Q2. Flip dictionary "{}": {}'.format(my_dict, result2))
+#     print('Q2. Flip dictionary "{}": \n=> {}'.format(my_dict, result2))
 
 
-# 3. 입력되는 문장이 triad phrases 인지를 판별하는 함수를 구현하고 이 함수를 불러서 실행하라.
-# is_triad("learned theorem") => True
-# is_triad("studied theories") => False
-# is_triad("wooded courses") => True
+# # 3. 입력되는 문장이 triad phrases 인지를 판별하는 함수를 구현하고 이 함수를 불러서 실행하라.
+# # is_triad("learned theorem") => True
+# # is_triad("studied theories") => False
+# # is_triad("wooded courses") => True
 from nltk.corpus import words
 import nltk
-from itertools import combinations
 
 word_set = set([word.lower() for word in words.words('en')])
 
 
-def find_all_words(characters, combination_size):
-    print('find_all_words:', characters, combination_size)
-    if len(characters) <= 0:
+def find_word(base_word_index, characters, find_word_length, current_word):
+    if find_word_length >= len(characters):
+        if find_word_length == len(current_word) and current_word in word_set:
+            return current_word
+        else:
+            return None
+    if find_word_length == len(current_word) and current_word in word_set:
+        return current_word
+
+    current_word = characters[base_word_index]
+    for i in range(0, len(characters)):
+        if i is base_word_index:
+            continue
+        if len(current_word) == find_word_length:
+            if current_word in word_set:
+                return current_word
+            else:
+                current_word = characters[base_word_index]
+        current_word = current_word + characters[i]
+    return find_word(base_word_index, characters, find_word_length + 1, characters[base_word_index])
+
+def remove_word_2_list(word, my_list):
+    for character in list(word):
+        my_list.remove(character)
+    return my_list
+
+def find_all_words(remaining_characters):
+    if len(remaining_characters) <= 0:
         return True
-    all_combinations = combinations(characters, combination_size)
-    joined_character_combination = [''.join(combination) for combination in all_combinations]
-    found_words = word_set.intersection(set(joined_character_combination))
-    found = (len(found_words) > 0)
-    if found is True:
-        found_word_characters = [list(item) for item in list(found_words)]
-        for found_word_character in found_word_characters:
-            new_current_characters = characters
-            for c in found_word_character:
-                if c in new_current_characters:
-                    new_current_characters.remove(c)
-            for i in range(1, len(new_current_characters) + 1):
-                if i <= 1:
-                    continue
-                return find_all_words(new_current_characters, i)
+    print('find_all_words:', remaining_characters)
+    characters = remaining_characters
+    for i in range(0, len(characters)):
+        base_word = characters[i]
+        found_word = find_word(i, characters, 3, base_word)
+        if found_word is not None:
+            print(found_word)
+            new_remaining_characters = remove_word_2_list(found_word, remaining_characters)
+            return find_all_words(new_remaining_characters)
     return False
 
 
 def is_triad(phrase):
+    def contains_found_all(results):
+        if results is None:
+            return False
+        for result in results:
+            if result is False:
+                return False
+        return True
+
     lowercase_phrase = phrase.lower()
     tokens = nltk.word_tokenize(lowercase_phrase)
     result_of_tokens = [False for i in range(len(tokens))]
     for t in range(len(tokens)):
         token = tokens[t]
         characters = list(token)
-        for i in range(1, len(characters) + 1):
-            if i <= 1:
-                continue
-            found = find_all_words(characters, i)
-            if found is True:
-                result_of_tokens[t] = True
-                break
-    return (False in result_of_tokens) is False and (True in result_of_tokens) is True
+        found = find_all_words(characters)
+        if found is True:
+            result_of_tokens[t] = True
+    return contains_found_all(result_of_tokens)
 
 
 if __name__ == '__main__':
     print('Enter the english phrase:')
-    user_input = str(input())
+    # user_input = str(input())
+    user_input = 'learned'
     result3 = is_triad(user_input)
     print('Q3. Is triad phrase about "{}": {}'.format(user_input, result3))
