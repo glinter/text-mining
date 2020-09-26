@@ -51,58 +51,66 @@ from nltk.corpus import words
 import nltk
 
 word_set = set([word.lower() for word in words.words('en')])
+min_size_of_word = 2
 
 
-def find_word(base_word_index, characters, find_word_length, current_word):
-    if find_word_length >= len(characters):
-        if find_word_length == len(current_word) and current_word in word_set:
-            return current_word
-        else:
-            return None
-    if find_word_length == len(current_word) and current_word in word_set:
-        return current_word
+def append_real_word_combination(all_combinations, characters, visits):
+    word = ''.join([characters[i] for i in range(0, len(characters)) if visits[i]])
+    if len(word) > min_size_of_word and word in word_set:
+        all_combinations.append(word)
 
-    current_word = characters[base_word_index]
-    for i in range(0, len(characters)):
-        if i is base_word_index:
+
+def find_all_character_combination(all_combinations, characters, visits, character_index, pick_size):
+    if pick_size is 0:
+        append_real_word_combination(all_combinations, characters, visits)
+        return
+    if character_index is len(characters):
+        return
+
+    visits[character_index] = True
+    find_all_character_combination(all_combinations, characters, visits, character_index + 1, pick_size - 1)
+
+    visits[character_index] = False
+    find_all_character_combination(all_combinations, characters, visits, character_index + 1, pick_size)
+
+
+def get_remaining_characters(characters, removed_characters):
+    remaining_characters = list(characters)
+    for removed_character in removed_characters:
+        remaining_characters.remove(removed_character)
+    return remaining_characters
+
+
+def find_all_words(characters):
+    if len(characters) <= min_size_of_word:
+        return False
+
+    all_combinations = list()
+    visits = [False for i in range(0, len(characters))]
+    for pick_size in range(0, len(characters)):
+        if pick_size <= min_size_of_word or pick_size is (len(characters) - 1):
             continue
-        if len(current_word) == find_word_length:
-            if current_word in word_set:
-                return current_word
-            else:
-                current_word = characters[base_word_index]
-        current_word = current_word + characters[i]
-    return find_word(base_word_index, characters, find_word_length + 1, characters[base_word_index])
+        find_all_character_combination(all_combinations, characters, visits, 0, pick_size)
 
-def remove_word_2_list(word, my_list):
-    for character in list(word):
-        my_list.remove(character)
-    return my_list
-
-def find_all_words(remaining_characters):
-    if len(remaining_characters) <= 0:
-        return True
-    print('find_all_words:', remaining_characters)
-    characters = remaining_characters
-    for i in range(0, len(characters)):
-        base_word = characters[i]
-        found_word = find_word(i, characters, 3, base_word)
-        if found_word is not None:
-            print(found_word)
-            new_remaining_characters = remove_word_2_list(found_word, remaining_characters)
-            return find_all_words(new_remaining_characters)
+    for combination in all_combinations:
+        combination_characters = list(combination)
+        if ''.join(combination_characters) not in word_set:
+            continue
+        remaining_characters = get_remaining_characters(characters, combination_characters)
+        if remaining_characters is None or len(remaining_characters) <= 0:
+            print(''.join(characters), '=', ''.join(combination_characters), '/', ''.join(remaining_word))
+            return True
+        remaining_word = ''.join(remaining_characters)
+        if remaining_word in word_set:
+            print(''.join(characters), '=', ''.join(combination_characters), '//', ''.join(remaining_word))
+            return True
+        if find_all_words(remaining_characters) is True:
+            print(''.join(characters), '=', ''.join(combination_characters), '///', ''.join(remaining_word))
+            return True
     return False
 
 
 def is_triad(phrase):
-    def contains_found_all(results):
-        if results is None:
-            return False
-        for result in results:
-            if result is False:
-                return False
-        return True
-
     lowercase_phrase = phrase.lower()
     tokens = nltk.word_tokenize(lowercase_phrase)
     result_of_tokens = [False for i in range(len(tokens))]
@@ -112,12 +120,11 @@ def is_triad(phrase):
         found = find_all_words(characters)
         if found is True:
             result_of_tokens[t] = True
-    return contains_found_all(result_of_tokens)
+    return not(False in result_of_tokens)
 
 
 if __name__ == '__main__':
     print('Enter the english phrase:')
-    # user_input = str(input())
-    user_input = 'learned'
+    user_input = str(input())
     result3 = is_triad(user_input)
     print('Q3. Is triad phrase about "{}": {}'.format(user_input, result3))
